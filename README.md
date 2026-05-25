@@ -2,9 +2,7 @@
 
 Recon Before Action
 ![Banner](screenshots/menu.png)
-<p align="center">
-  <img src="screenshots/banner.png" width="500">
-</p>
+
 
 RamboEyes is a Bash-based reconnaissance helper for HTB/CPTS-style labs.
 
