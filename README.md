@@ -1,8 +1,10 @@
 # RamboEyes
 
 Recon Before Action
-![Banner](screenshots/menu.png)
 
+<p align="center">
+  <img src="screenshots/menu.png" width="700">
+</p>
 
 RamboEyes is a Bash-based reconnaissance helper for HTB/CPTS-style labs.
 
@@ -35,6 +37,8 @@ RamboEyes is a Bash-based reconnaissance helper for HTB/CPTS-style labs.
 ```bash
 chmod +x ramboeyes.sh
 ./ramboeyes.sh
+```
 
-Disclaimer
+## Disclaimer
+
 Use only on systems you own or are authorized to test.
