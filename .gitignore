@@ -1,0 +1,6 @@
+scans/
+*.xml
+*.html
+*.nmap
+*.gnmap
+.ramboeyes_*.sh
