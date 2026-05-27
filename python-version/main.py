@@ -1,6 +1,5 @@
 import os
 import subprocess
-import platform
 from pathlib import Path
 
 RED = "\033[91m"
@@ -11,7 +10,6 @@ RESET = "\033[0m"
 
 
 def banner():
-
     os.system("cls" if os.name == "nt" else "clear")
 
     print(YELLOW)
@@ -20,23 +18,11 @@ def banner():
     print("              Recon Before Action")
     print("==================================================")
     print(GREEN)
-    print("                 ___       ___")
-    print("               /'   '\\___/'  '\\")
-    print("              |                 |")
-    print("              |   ( )     ( )   |")
-    print("              |       ___       |")
-    print("              |      (___)      |")
-    print("               \\               /")
-    print("                '\\___     ___/'")
-    print("                     |   |")
-    print("                     |   |")
-    print()
     print("        EYES ON TARGET. INTEL OVER EVERYTHING.")
     print(RESET)
 
 
 def ask_sudo():
-
     answer = input(
         f"{YELLOW}[?] Run scans with elevated privileges/sudo? (y/n): {RESET}"
     ).strip().lower()
@@ -44,10 +30,34 @@ def ask_sudo():
     return answer == "y"
 
 
+def ask_install_terminal():
+    if os.name == "nt":
+        return
+
+    print()
+    print(f"{CYAN}========== Parallel Recon Setup =========={RESET}")
+
+    answer = input(
+        f"{YELLOW}[?] Install gnome-terminal for parallel scans? (y/n): {RESET}"
+    ).strip().lower()
+
+    if answer == "y":
+        print()
+        print(f"{GREEN}[+] Installing gnome-terminal...{RESET}")
+        print(f"{YELLOW}[+] Rambo cannot stay in one terminal for too long.{RESET}")
+        print(f"{YELLOW}[+] One jungle. Multiple scan windows.{RESET}")
+        print(f"{YELLOW}[+] Sequential scans are for civilians.{RESET}")
+
+        subprocess.run(
+            "sudo apt update && sudo apt install gnome-terminal -y",
+            shell=True
+        )
+
+        print(f"{GREEN}[+] Parallel recon support installed.{RESET}")
+
+
 def create_folders(target):
-
     base_dir = Path.home() / "scans" / target
-
     raw_dir = base_dir / "00_raw_scans"
     html_dir = base_dir / "01_reports_html"
     enum_dir = base_dir / "02_enum"
@@ -60,9 +70,7 @@ def create_folders(target):
 
 
 def launch_terminal(title, command):
-
     if os.name == "nt":
-
         full_command = (
             f'start "{title}" cmd /k '
             f'"color 0A && title {title} && {command}"'
@@ -83,30 +91,8 @@ def launch_terminal(title, command):
         "read"
     )
 
-    if subprocess.call(
-        "command -v xfce4-terminal",
-        shell=True,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL
-    ) == 0:
-
-        subprocess.Popen([
-            "xfce4-terminal",
-            "--hold",
-            "--title",
-            title,
-            "--command",
-            f"bash -c \"{terminal_command}\""
-        ])
-
-    elif subprocess.call(
-        "command -v gnome-terminal",
-        shell=True,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL
-    ) == 0:
-
-        subprocess.Popen([
+    terminals = [
+        [
             "gnome-terminal",
             "--title",
             title,
@@ -114,18 +100,40 @@ def launch_terminal(title, command):
             "bash",
             "-c",
             terminal_command
-        ])
+        ],
+        [
+            "xfce4-terminal",
+            "--hold",
+            "--title",
+            title,
+            "--command",
+            f"bash -c \"{terminal_command}\""
+        ],
+        [
+            "konsole",
+            "-e",
+            f"bash -c \"{terminal_command}\""
+        ],
+        [
+            "xterm",
+            "-hold",
+            "-e",
+            f"bash -c \"{terminal_command}\""
+        ]
+    ]
 
-    else:
+    for terminal in terminals:
+        try:
+            subprocess.Popen(terminal)
+            return
+        except FileNotFoundError:
+            continue
 
-        subprocess.Popen(
-            f"bash -c \"{terminal_command}\"",
-            shell=True
-        )
+    print(f"{RED}[-] No supported terminal emulator found.{RESET}")
+    print(f"{YELLOW}[!] Install gnome-terminal with:{RESET} sudo apt install gnome-terminal -y")
 
 
 def extract_ports(raw_dir):
-
     gnmap = raw_dir / "portScan.gnmap"
 
     if not gnmap.exists():
@@ -134,26 +142,18 @@ def extract_ports(raw_dir):
     ports = []
 
     with open(gnmap, "r", encoding="utf-8", errors="ignore") as f:
-
         for line in f:
-
             if "Ports:" in line:
-
                 split_ports = line.split("Ports:")[1].split(",")
 
                 for p in split_ports:
-
                     if "/open/" in p:
-
-                        ports.append(
-                            p.split("/")[0].strip()
-                        )
+                        ports.append(p.split("/")[0].strip())
 
     return ports
 
 
 def tcp_full_scan(target, raw_dir, html_dir, use_sudo):
-
     prefix = "sudo " if use_sudo and os.name != "nt" else ""
 
     cmd = (
@@ -167,16 +167,11 @@ def tcp_full_scan(target, raw_dir, html_dir, use_sudo):
         f'fi'
     )
 
-    print(f"{GREEN}[+] Launching TCP full scan...{RESET}")
-
-    launch_terminal(
-        "RamboEyes TCP Full Scan",
-        cmd
-    )
+    print(f"{GREEN}[+] Launching TCP full scan in new terminal...{RESET}")
+    launch_terminal("RamboEyes TCP Full Scan", cmd)
 
 
 def udp_scan(target, raw_dir, html_dir, use_sudo):
-
     prefix = "sudo " if use_sudo and os.name != "nt" else ""
 
     cmd = (
@@ -192,25 +187,18 @@ def udp_scan(target, raw_dir, html_dir, use_sudo):
         f'fi'
     )
 
-    print(f"{GREEN}[+] Launching UDP scan...{RESET}")
-
-    launch_terminal(
-        "RamboEyes UDP Scan",
-        cmd
-    )
+    print(f"{GREEN}[+] Launching UDP scan in new terminal...{RESET}")
+    launch_terminal("RamboEyes UDP Scan", cmd)
 
 
 def service_scan(target, raw_dir, html_dir, use_sudo):
-
     ports = extract_ports(raw_dir)
 
     if not ports:
-
-        print(f"{RED}[-] Run TCP full scan first.{RESET}")
+        print(f"{RED}[-] Run TCP full scan first and wait until it finishes.{RESET}")
         return
 
     port_string = ",".join(ports)
-
     prefix = "sudo " if use_sudo and os.name != "nt" else ""
 
     cmd = (
@@ -225,18 +213,12 @@ def service_scan(target, raw_dir, html_dir, use_sudo):
         f'fi'
     )
 
-    print(f"{GREEN}[+] Launching service scan...{RESET}")
-
-    launch_terminal(
-        "RamboEyes Service Scan",
-        cmd
-    )
+    print(f"{GREEN}[+] Launching service scan in new terminal...{RESET}")
+    launch_terminal("RamboEyes Service Scan", cmd)
 
 
 def describe_port(port):
-
     mapping = {
-
         "21": "FTP - Tools: ftp, hydra, nmap ftp scripts.",
         "22": "SSH - Tools: ssh, ssh-audit, hydra.",
         "23": "Telnet - Tools: telnet, hydra, nc.",
@@ -270,11 +252,9 @@ def describe_port(port):
 
 
 def recommendations(raw_dir):
-
     ports = extract_ports(raw_dir)
 
     if not ports:
-
         print(f"{RED}[-] Run TCP full scan first.{RESET}")
         return
 
@@ -282,60 +262,43 @@ def recommendations(raw_dir):
     print(f"{CYAN}========== Recommendations =========={RESET}")
 
     for port in ports:
-
         print()
         print(f"{GREEN}[Port {port}]{RESET}")
         print(describe_port(port))
 
 
 def open_reports(html_dir):
-
     html_files = list(html_dir.glob("*.html"))
 
     if not html_files:
-
         print(f"{RED}[-] No HTML reports found.{RESET}")
         return
 
     for report in html_files:
-
         try:
-
-            subprocess.Popen([
-                "firefox",
-                str(report)
-            ])
-
-            print(
-                f"{GREEN}[+] Opening {report.name} in Firefox{RESET}"
-            )
-
+            subprocess.Popen(["firefox", str(report)])
+            print(f"{GREEN}[+] Opening {report.name} in Firefox{RESET}")
         except Exception:
-
-            print(
-                f"{RED}[-] Failed to open {report}{RESET}"
-            )
+            print(f"{RED}[-] Failed to open {report}{RESET}")
 
 
 def menu():
-
     banner()
 
     target = input("Target IP: ").strip()
 
     if not target:
-
         print(f"{RED}[-] Target required.{RESET}")
         return
 
-    use_sudo = ask_sudo()
+    ask_install_terminal()
 
+    use_sudo = ask_sudo()
     base_dir, raw_dir, html_dir, enum_dir = create_folders(target)
 
     print(f"{GREEN}[+] Output Directory:{RESET} {base_dir}")
 
     while True:
-
         print()
         print(f"{YELLOW}========== RamboEyes Menu =========={RESET}")
         print("1) TCP Full Scan")
@@ -349,47 +312,25 @@ def menu():
         choice = input("Choose option: ").strip()
 
         if choice == "1":
-
-            tcp_full_scan(
-                target,
-                raw_dir,
-                html_dir,
-                use_sudo
-            )
+            tcp_full_scan(target, raw_dir, html_dir, use_sudo)
 
         elif choice == "2":
-
-            udp_scan(
-                target,
-                raw_dir,
-                html_dir,
-                use_sudo
-            )
+            udp_scan(target, raw_dir, html_dir, use_sudo)
 
         elif choice == "3":
-
-            service_scan(
-                target,
-                raw_dir,
-                html_dir,
-                use_sudo
-            )
+            service_scan(target, raw_dir, html_dir, use_sudo)
 
         elif choice == "4":
-
             recommendations(raw_dir)
 
         elif choice == "5":
-
             open_reports(html_dir)
 
         elif choice == "0":
-
             print(f"{GREEN}[+] Exiting RamboEyes.{RESET}")
             break
 
         else:
-
             print(f"{RED}[-] Invalid option.{RESET}")
 
 
